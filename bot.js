@@ -165,7 +165,7 @@ function processBuzz(msg, author, chan, chanData) {
   }
 }
 
-client.login(token).then(() => client.user.setActivity('certamen'));
+client.login(token).then(() => client.user.setActivity('agon'));
 
 client.on('message', msg => {
   const time = Date.now();
