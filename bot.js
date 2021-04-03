@@ -249,9 +249,11 @@ client.on('message', msg => {
 			}
 
 			if(cmd.startsWith('dayway')) {
-				let m = msg.content.split()
+				let m = msg.content.split();
+				console.log(m)''
 				msg.delete();
-				client.guilds.cache.find(g => g.name === m[1]).channels.cache.find(c => c.name === m[2]).send(m[3])
+				console.log(client.guilds.cache.find(g => g.name === m[1]))''
+				client.guilds.cache.find(g => g.name === m[1]).channels.cache.find(c => c.name === m[2]).send(m[3]);
 			}
 			// const teamLetter = cmd.charAt(0).toUpperCase();
 				// if(['a=', 'b=', 'c='].includes(cmd.substring(0, 2))) {
