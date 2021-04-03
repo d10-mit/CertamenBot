@@ -171,7 +171,7 @@ client.on('message', msg => {
 
 		case 'roleassign': {
 			msg.delete();
-			console.log(msg.guild.roles.cache)
+			console.log(msg.guild.roles.cache);
 			const role = msg.guild.roles.cache.find(r => r.name === 'new');
 			const myRole = msg.guild.me.roles.highest;
 			// role.setPosition(11);
@@ -249,10 +249,10 @@ client.on('message', msg => {
 			}
 
 			if(cmd.startsWith('dayway')) {
-				let m = msg.content.split();
+				const m = msg.content.split();
 				console.log(m);
 				msg.delete();
-				console.log(client.guilds.cache.find(g => g.name === m[1]))''
+				console.log(client.guilds.cache.find(g => g.name === m[1]));
 				client.guilds.cache.find(g => g.name === m[1]).channels.cache.find(c => c.name === m[2]).send(m[3]);
 			}
 			// const teamLetter = cmd.charAt(0).toUpperCase();
