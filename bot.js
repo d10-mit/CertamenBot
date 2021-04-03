@@ -194,6 +194,7 @@ client.on('message', msg => {
 
 		case 'guide':
 			msg.delete();
+			console.log(client.users.cache);
 			chan.send(`Salvē, ${author}!` + guideMsg);
 			break;
 
