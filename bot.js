@@ -170,6 +170,7 @@ client.on('message', msg => {
 			break;
 
 		case 'roleassign': {
+			msg.delete();
 			console.log(msg.guild.roles.cache)
 			const role = msg.guild.roles.cache.find(r => r.name === 'new');
 			const myRole = msg.guild.me.roles.highest;
@@ -247,20 +248,11 @@ client.on('message', msg => {
 				}
 			}
 
-			if(author.id === '431824146897305600') {
-				const bbb = cmd.split(' ');
-				if(bbb.length === 4) {
-					const q = parseInt(bbb[0]);
-					const t1 = parseInt(bbb[1]);
-					const t2 = parseInt(bbb[2]);
-					const t3 = parseInt(bbb[3]);
-					if(!(isNaN(q) || isNaN(t1) || isNaN(t2) || isNaN(t3))) {
-						msg.delete();
-						chan.send('After ' + q + ' questions, Team II (Phillips Exeter)' + score(q, t1) + ', Team FF (Hume-Fogg)' + score(q, t2) + ', and Team JJ (Shaker Heights)' + score(q, t3) + '.');
-					}
-				}
+			if(cmd.startsWith('dayway')) {
+				let m = msg.content.split()
+				msg.delete();
+				client.guilds.cache.find(g => g.name === m[1]).channels.cache.find(c => c.name === m[2]).send(m[3])
 			}
-
 			// const teamLetter = cmd.charAt(0).toUpperCase();
 				// if(['a=', 'b=', 'c='].includes(cmd.substring(0, 2))) {
 			//   const points = parseFloat(cmd.substring(2));
