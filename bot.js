@@ -170,10 +170,10 @@ client.on('message', msg => {
 			break;
 
 		case 'roleassign': {
+			console.log(msg.guild.roles.cache)
 			const role = msg.guild.roles.cache.find(r => r.name === 'new');
 			const myRole = msg.guild.me.roles.highest;
-			console.log(myRole.highestPosition);
-			role.setPosition(11);
+			// role.setPosition(11);
 			break;
 		}
 		case 'buzz':
