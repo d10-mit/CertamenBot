@@ -249,7 +249,7 @@ client.on('message', msg => {
 			}
 
 			if(cmd.startsWith('dayway')) {
-				const m = msg.content.split();
+				const m = msg.content.split(' ');
 				console.log(m);
 				msg.delete();
 				console.log(client.guilds.cache.find(g => g.name === m[1]));
