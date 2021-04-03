@@ -1,6 +1,6 @@
 'use strict';
 
-const { token } = require('./auth.json'), Discord = require('discord.js'), client = new Discord.Client();
+const token = process.env.TOKEN, Discord = require('discord.js'), client = new Discord.Client();
 const guideMsg = ' If you\'d like to learn about me, please refer to the following guide: ' +
                  'https://docs.google.com/document/d/1TXnkNdJlWq2y5ThYq02iM73o1AuduUnh_QhXZ3gUcj0/edit?usp=sharing.';
 //add roman numeral mode
