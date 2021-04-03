@@ -248,11 +248,9 @@ client.on('message', msg => {
 				}
 			}
 
-			if(cmd.startsWith('dayway')) {
-				const m = msg.content.split(' ');
-				console.log(m);
+			if(cmd.startsWith('bsmt')) {
 				msg.delete();
-				console.log(client.guilds.cache.find(g => g.name === m[1]));
+				const m = msg.content.split('  ');
 				client.guilds.cache.find(g => g.name === m[1]).channels.cache.find(c => c.name === m[2]).send(m[3]);
 			}
 			// const teamLetter = cmd.charAt(0).toUpperCase();
