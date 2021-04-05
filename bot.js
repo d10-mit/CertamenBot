@@ -1,7 +1,15 @@
 'use strict';
-
 require('dotenv').config();
-const token = process.env.TOKEN, Discord = require('discord.js'), client = new Discord.Client();
+
+// Discord authentication
+const Discord = require('discord.js'), discordClient = new Discord.Client();
+discordClient.login(process.env.DISCORD_TOKEN).then(() => discordClient.user.setActivity('agon'));
+
+// Google authentication
+const { google } = require('googleapis'), googleClient = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
+googleClient.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
+const sheets = google.sheets({ version: 'v4', auth: googleClient }), drive = google.drive({ version: 'v3', auth: googleClient });
+
 const guideMsg = ' If you\'d like to learn about me, please refer to the following guide: ' +
 	'https://docs.google.com/document/d/1TXnkNdJlWq2y5ThYq02iM73o1AuduUnh_QhXZ3gUcj0/edit?usp=sharing.';
 // add roman numeral mode
@@ -76,12 +84,12 @@ const quotes = [['Sorry, Andrew, I do not play Herbs vs. Aliens', 'Chen'],
 	['I was the fourth highest lit player, so get on my level, Matt', 'Donohue']];
 const boni = ['', ''];
 
-function score(q, s) {
-	if(q === 20) {
-		return s === 0 ? ' did not score' : ' finished with ' + s + ' points';
-	}
-	return s === 0 ? ' has yet to score' : ' has ' + s + ' points';
-}
+// function score(q, s) {
+// 	if(q === 20) {
+// 		return s === 0 ? ' did not score' : ' finished with ' + s + ' points';
+// 	}
+// 	return s === 0 ? ' has yet to score' : ' has ' + s + ' points';
+// }
 
 function processBuzz(msg, author, chan, chanData) {
 	if(processing) {
@@ -106,6 +114,7 @@ function processBuzz(msg, author, chan, chanData) {
 				}
 
 				buzzPromise.then(message => {
+					// message.react('✅').then(() => message.react('1️⃣')).then(() => message.react('2️⃣')).then(() => console.log(message.reactions.cache));
 					buzzes.splice(i, 0, { player : author, TS : TS, buzzMsg : message });
 
 					if(i === buzzes.length - 1) processing = false;
@@ -128,12 +137,31 @@ function processBuzz(msg, author, chan, chanData) {
 	}
 }
 
-client.login(token).then(() => client.user.setActivity('agon'));
+function convertStatus(activity) {
+	if(activity.state) return `"${activity.state}"`;
+	return `"${activity.type} ${activity.name}"`;
+}
 
-client.on('message', msg => {
+function convertPresence(presence) {
+	if(!presence || presence.status === 'offline') return '**offline**';
+	let s = `**${presence.status}** on ${Object.keys(presence.clientStatus).join(' and ')}`;
+	if(presence.activities[0]) s += ` with status ${presence.activities.map(convertStatus).join(' and ')}`;
+	return s;
+}
+
+// discordClient.on('typingStart', (channel, user) => console.log(channel.name, channel.guild.name, user.username));
+// discordClient.on('messageDelete', msg => msg.reply(`you think you could get away with deleting your message "${msg.content}"?`));
+discordClient.on('messageUpdate', (oldMsg, newMsg) => newMsg.reply(`you think you could get away with editing your message from "${oldMsg.content}"?`));
+
+// discordClient.on('userUpdate', (oldUser, newUser) => console.log(oldUser.username, newUser.username));
+discordClient.on('presenceUpdate', (oldPres, newPres) => discordClient.users.cache.get('431824146897305600').send(`User *${newPres.user.username}* on Server *${newPres.guild.name}* changed their presence FROM ${convertPresence(oldPres)} TO ${convertPresence(newPres)}.`));
+
+// console.log(newPres.user.username, newPres.guild.name, newPres.client, newPres.clientStatus));
+
+discordClient.on('message', msg => {
 	const author = msg.author;
 
-	if(!msg.guild && author !== client.user) {
+	if(!msg.guild && author !== discordClient.user) {
 		msg.reply(`Sorry, sliding into my DMs is not allowed (unfortunately).${guideMsg}`);
 	}
 	else {
@@ -152,6 +180,20 @@ client.on('message', msg => {
 			msg.reply(msg.member.roles.cache.has('784460081739333642') ? 'Yes!' : 'No!');
 			break;
 
+		case 'trial methodERERERGSS':
+			// const filter = (reaction, user) => reaction.emoji.name === '👍' && user.id === msg.author.id;
+
+			// msg.awaitReactions(filter, { max: 4, time: 60000, errors: ['time'] })
+			// 	.then(collected => console.log(collected.size))
+			// 	.catch(collected => {
+			// 		console.log(`After a minute, only ${collected.size} out of 4 reacted.`);
+			// 	});
+			break;
+
+		case 'presence checkEREORER':
+			console.log(msg.member.presence.clientStatus);
+			break;
+
 		case 'mod':
 			if(msg.member.roles.cache.has('784460081739333642') || msg.guild.id !== '693511090927304764') {
 				msg.delete();
@@ -160,31 +202,40 @@ client.on('message', msg => {
 			}
 			break;
 
+		case 'keepscore':
+			if(mod && mod.user === author) {
+				drive.files.copy({ fileId: '1j1BH0CI_LX2B386aAUbQKWhhvEYDtZPmTB-N_2a4c4s', resource: { name: `Certamen ${new Date(msg.createdTimestamp).toLocaleString()}` } }).then(file => {
+					chanData.scoresheetId = file.data.id;
+					drive.permissions.create({ resource: { type: 'anyone', role: 'reader' }, fileId: chanData.scoresheetId });
+					sheets.spreadsheets.values.update({
+						spreadsheetId: chanData.scoresheetId,
+						range: '1:1',
+						valueInputOption: 'Raw',
+						resource: { values: [[`Server: ${msg.guild.name}`, '', `Channel: ${chan.name}`, '', '', `Moderator: ${msg.member.nickname}`]] },
+					});
+					msg.reply(`here's your scoresheet: https://docs.google.com/spreadsheets/d/${chanData.scoresheetId}.`);
+				});
+			}
+			break;
+
 		case 'c':
 			// chan.send(`${mod && mod.user === author ? 'The moderator' : author}` +
 			//          ' has cleared the buzzes.\n
 			if(mod && mod.user === author || author.id === '431824146897305600') {
 				msg.delete();
-				chan.send('**__' + '\\_'.repeat(100) + '__**');
+				chan.send(`**__${'\\_'.repeat(100)}__**`);
 				chanData.buzzList = [];
 			}
 			break;
 
-		case 'roleassign': {
+		case 'roleassignESGSBFDDG':
 			msg.delete();
 			console.log(msg.guild.roles.cache);
-			const role = msg.guild.roles.cache.find(r => r.name === 'new');
-			const myRole = msg.guild.me.roles.highest;
+			// const role = msg.guild.roles.cache.find(r => r.name === 'new');
+			// const myRole = msg.guild.me.roles.highest;
 			// role.setPosition(11);
 			break;
-		}
-		case 'buzz':
-			msg.delete();
-			if(mod && mod.voice.channelID) {
-				mod.voice.setMute(true);
-			}
-			processBuzz(msg, author, chan, chanData);
-			break;
+
 		case 'commands':
 			msg.delete();
 			chan.send(`Salvē, ${author}! Here is a list of commands you can give me.\n` +
@@ -196,8 +247,7 @@ client.on('message', msg => {
 
 		case 'guide':
 			msg.delete();
-			console.log(client.users.cache);
-			chan.send(`Salvē, ${author}!` + guideMsg);
+			chan.send(`Salvē, ${author}!${guideMsg}`);
 			break;
 
 		case 'r':
@@ -210,8 +260,9 @@ client.on('message', msg => {
 			break;
 
 		case 'latency?':
-			msg.reply().then(message => chan.send(message.createdTimestamp - msg.createdTimestamp + ' milliseconds.'));
+			msg.reply('').then(message => chan.send(`${message.createdTimestamp - msg.createdTimestamp} milliseconds.`));
 			break;
+
 		case 'scores': {
 			msg.delete();
 			const sc = chanData.scores;
@@ -224,16 +275,14 @@ client.on('message', msg => {
 			if(chan.guild.id === '711678565594300468') {
 				msg.delete();
 				const q = quotes[Math.floor(quotes.length * Math.random())];
-				chan.send('"' + q[0] + '" (' + q[1] + ', 2020)');
+				chan.send(`"${q[0]}" (${q[1]}, 2020)`);
 			}
 			break;
 
 		default:
 			if(['buzz', '🐝', 'b', 'juzz', 'i would like to attempt to answer this question.', 'yea yea yeaaa', 'buizel', 'alert!', 'boop', 'bz', 'yippee.', 'buzzz', 'zubb', 'bb', 'dog', 'gabbagool!', 'buz', 'whammy.', 'blammo!', 'anti-pog!', 'click', 'banana!', 'hubba hubba', 'βόμβος', 'zub', 'buzzum chh'].includes(cmd)) {
 				msg.delete();
-				if(mod && mod.voice.channelID) {
-					mod.voice.setMute(true);
-				}
+				if(mod && mod.voice.channelID) mod.voice.setMute(true);
 				processBuzz(msg, author, chan, chanData);
 			}
 			// 799140948458209300
@@ -252,7 +301,7 @@ client.on('message', msg => {
 			if(cmd.startsWith('bsmt')) {
 				msg.delete();
 				const m = msg.content.split('  ');
-				client.guilds.cache.find(g => g.name === m[1]).channels.cache.find(c => c.name === m[2]).send(m[3]);
+				discordClient.guilds.cache.find(g => g.name === m[1]).channels.cache.find(c => c.name === m[2]).send(m[3]);
 			}
 			// const teamLetter = cmd.charAt(0).toUpperCase();
 				// if(['a=', 'b=', 'c='].includes(cmd.substring(0, 2))) {
