@@ -150,11 +150,13 @@ function convertPresence(presence) {
 }
 
 // discordClient.on('typingStart', (channel, user) => console.log(channel.name, channel.guild.name, user.username));
-// discordClient.on('messageDelete', msg => msg.reply(`you think you could get away with deleting your message "${msg.content}"?`));
-discordClient.on('messageUpdate', (oldMsg, newMsg) => newMsg.reply(`you think you could get away with editing your message from "${oldMsg.content}"?`));
+discordClient.on('messageDelete', msg => msg.reply(`you think you could get away with deleting your message "${msg.content}"?`));
+discordClient.on('messageUpdate', (oldMsg, newMsg) => {
+	if(newMsg.author !== discordClient.user) newMsg.reply(`you think you could get away with editing your message from "${oldMsg.content}"?`)
+});
 
 // discordClient.on('userUpdate', (oldUser, newUser) => console.log(oldUser.username, newUser.username));
-discordClient.on('presenceUpdate', (oldPres, newPres) => discordClient.users.cache.get('431824146897305600').send(`User *${newPres.user.username}* on Server *${newPres.guild.name}* changed their presence FROM ${convertPresence(oldPres)} TO ${convertPresence(newPres)}.`));
+// discordClient.on('presenceUpdate', (oldPres, newPres) => discordClient.users.cache.get('431824146897305600').send(`User *${newPres.user.username}* on Server *${newPres.guild.name}* changed their presence FROM ${convertPresence(oldPres)} TO ${convertPresence(newPres)}.`));
 
 // console.log(newPres.user.username, newPres.guild.name, newPres.client, newPres.clientStatus));
 
