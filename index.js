@@ -2,7 +2,7 @@
 require('dotenv').config();
 
 const website = require('express')();
-website.listen(process.env.PORT, () => console.log('hi'));
+website.listen(process.env.PORT || 3000);
 website.get('/', (req, res) => res.sendFile(__dirname + '/index.html'));
 
 // Discord authentication (requires secret environment variables)
