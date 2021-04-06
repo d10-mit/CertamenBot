@@ -1,6 +1,10 @@
 'use strict';
 require('dotenv').config();
 
+const website = require('express')();
+website.listen(3000, () => console.log('hi'));
+website.get('/', (req, res) => res.sendFile(__dirname + '/index.html'));
+
 // Discord authentication (requires secret environment variables)
 const Discord = require('discord.js'), discordClient = new Discord.Client();
 discordClient.login(process.env.DISCORD_TOKEN).then(() => discordClient.user.setActivity('agon'));
