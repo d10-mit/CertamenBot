@@ -1,0 +1,16 @@
+[{
+    "name": "Muting",
+    "parameters": ["Buzzes do not server mute the moderator", "Buzzes server mute the moderator"]
+},
+{
+    "name": "Clear/recognize laxity",
+    "parameters": ["Only the moderator can clear and recognize buzzes", "Anyone can clear and recognize buzzes, but non-moderators who do so will be identified"]
+},
+{
+    "name": "Scoring",
+    "parameters": ["Scores are aggregated for each team, which is identified by bracketed nicknames", "Scores are aggregated individually"]
+},
+{
+    "name": "Fun commands",
+    "parameters": ["Fun commands (`latency`, `info`, `devices`, `avatar`, `nick`, `quote`) disabled", "Fun commands (`latency`, `info`, `devices`, `avatar`, `nick`, `quote`) enabled"]
+}]
