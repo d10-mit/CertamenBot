@@ -1,11 +1,6 @@
 'use strict';
 require('dotenv').config();
 
-// Creates vanilla website from HTML file
-const website = require('express')();
-website.listen(process.env.PORT || 3000); // website.listen(process.env.PORT ?? 3000);
-website.get('/', (_, res) => res.sendFile(__dirname + '/index.html'));
-
 // Map of Channel IDs to Objects that stores ALL temporary data
 const channelData = new Map();
 
