@@ -6,7 +6,7 @@ const channelData = new Map();
 
 // Discord authentication (requires secret environment variables)
 const Discord = require('discord.js'), discordClient = new Discord.Client();
-discordClient.login(process.env.DISCORD_TOKEN).then(() => discordClient.user.setActivity('agon'));
+discordClient.login(process.env.DISCORD_TOKEN).then(() => console.log('logged in'));
 
 // Google authentication (requires secret environment variables)
 const { google } = require('googleapis'), googleClient = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
@@ -23,9 +23,15 @@ discordClient.on('message', message => {
 		// Initializes Channel data in the Map for every text channel
 		discordClient.channels.cache.filter((channel, channelID) => channel.type === 'text' && !channelData.has(channelID)).each((textChannel, textChannelID) => {
 			channelData.set(textChannelID, { buzzwords: new Set(['b', 'buzz']), settings: '1111', buzzList: [], buzzEmbedEdited : true, buzzTeams: new Set() });
-			if(textChannel.viewable && textChannel.permissionsFor(textChannel.guild.me).has('SEND_MESSAGES')) textChannel.startTyping();
 		});
 
+		const chan = message.channel;
+		let chanData = channels.find(ch => ch.id === chan.id);
+
+		if(!chanData) {
+			chanData = { id : chan.id, scores : [0, 0, 0], buzzList : [] };
+			channels.push(chanData);
+		}
 		const channelDatum = channelData.get(message.channel.id);
 
 		// Branches based on case-insensitive command
@@ -97,9 +103,11 @@ discordClient.on('message', message => {
 		case 'c':
 			if(channelDatum.settings[1] === '0' && !(channelDatum.moderator && channelDatum.moderator.id === message.author.id)) return; // if(channelDatum.moderator?.id !== message.author.id && channelDatum.settings[1] === '0') return;
 			message.delete();
+			chanData.buzzList = [];
 			channelDatum.buzzList = [], channelDatum.buzzEmbedMessage = null, channelDatum.buzzEmbedEdited = true, channelDatum.buzzTeams = new Set();
 			if(channelDatum.moderator && channelDatum.moderator.id === message.author.id) message.channel.send(`**__${'\\_'.repeat(100)}__**`); // channelDatum.moderator?.id !== message.author.id
 			else message.reply(`**__${'\\_'.repeat(100)}__**`);
+
 			break;
 
 		// Server unmutes moderator
@@ -177,54 +185,59 @@ discordClient.on('message', message => {
 		}
 
 		default:
-			if(channelDatum.buzzwords.has(message.content.toLowerCase())) {
-				const processBuzz = () => {
-					if(channelDatum.buzzEmbedEdited) {
-						if(channelDatum.buzzEmbedMessage) channelDatum.buzzEmbedMessage.edit(buzzEmbed).then((buzzEmbedMessage) => {
-							channelDatum.buzzEmbedMessage = buzzEmbedMessage;
-							channelDatum.buzzEmbedEdited = true;
-						});
-						else message.channel.send(buzzEmbed).then((buzzEmbedMessage) => {
-							channelDatum.buzzEmbedMessage = buzzEmbedMessage;
-							channelDatum.buzzEmbedEdited = true;
-						});
-					}
-					else {
-						setTimeout(processBuzz, 1)
-					}
-					// if(channelDatum.buzzEmbedsSent && channelDatum.buzzEmbedsDeleted) {
-					// 	channelDatum.buzzEmbedsSent = false, channelDatum.buzzEmbedsDeleted = false;
-					// 	message.channel.send(new Discord.MessageEmbed()
-					// 		.setColor('RANDOM')
-					// 		.setTitle('Buzz list')
-					// 		.addFields(channelDatum.buzzList.map((buzz, index) => ({ name: '​', value: `${index + 1}. ${buzz.player} has buzzed${index ? ` (+${(buzz.buzzTime - channelDatum.buzzList[0].buzzTime) / 1000} s)` : ''}` })))
-					// 		.setTimestamp()
-					// 		.setFooter('Copyright © 2021 David Chen')).then(buzzEmbedMessage => {
-					// 		channelDatum.buzzEmbedMessage = buzzEmbedMessage, channelDatum.buzzEmbedsSent = true;
-					// 	});
-					// 	if(channelDatum.buzzEmbedMessage) channelDatum.buzzEmbedMessage.delete().then(() => channelDatum.buzzEmbedsDeleted = true);
-					// 	else channelDatum.buzzEmbedsDeleted = true;
-					// }
-					// else {
-					// 	setTimeout(processBuzz, 1);
-					// }
-				};
-
+			if(['buzz', '🐝', 'b', 'juzz', 'i would like to attempt to answer this question.', 'yea yea yeaaa', 'buizel', 'alert!', 'boop', 'bz', 'yippee.', 'buzzz', 'zubb', 'bb', 'dog', 'gabbagool!', 'buz', 'whammy.', 'blammo!', 'anti-pog!', 'click', 'banana!', 'hubba hubba', 'βόμβος', 'zub', 'buzzum chh'].includes(message.content.toLowerCase())) {
 				message.delete();
-				if(channelDatum.settings[0] === '1' && channelDatum.moderator && channelDatum.moderator.voice.channelID) channelDatum.moderator.voice.setMute(true); // channelDatum.moderator?.voice.channelID
-				const buzzPlayerNickname = message.member.nickname || message.author.username, buzzPlayerTeam = buzzPlayerNickname.substring(buzzPlayerNickname.indexOf('[') + 1, buzzPlayerNickname.indexOf(']')); // replace with ??
-				channelDatum.buzzList.push({ player: message.author, buzzTime : message.createdAt, irrelevant: buzzPlayerTeam && channelDatum.buzzTeams.has(buzzPlayerTeam) });
-				channelDatum.buzzTeams.add(buzzPlayerTeam);
-				channelDatum.buzzList.sort((buzz1, buzz2) => buzz1.buzzTime - buzz2.buzzTime);
-				const buzzEmbed = new Discord.MessageEmbed()
-					.setColor('RANDOM')
-					.setTitle('Buzz list')
-					.addFields(channelDatum.buzzList.map((buzz, index) => ({ name: '​', value: `${buzz.irrelevant ? '~~' : ''}${index + 1}. ${buzz.player} has buzzed${index ? ` (+${(buzz.buzzTime - channelDatum.buzzList[0].buzzTime) / 1000} s)` : ''}${buzz.irrelevant ? '~~' : ''}` })))
-					.setTimestamp()
-					.setFooter('Copyright © 2021 David Chen');
-				processBuzz();
-				// message.react('✅').then(() => message.react('1️⃣')).then(() => message.react('2️⃣')).then(() => console.log(message.reactions.cache));
+				if(channelDatum.moderator && channelDatum.moderator.voice.channelID) channelDatum.moderator.voice.setMute(true);
+				processBuzz(message, message.author, message.channel, chanData);
 			}
+			// if(channelDatum.buzzwords.has(message.content.toLowerCase())) {
+			// 	const processBuzz = () => {
+			// 		if(channelDatum.buzzEmbedEdited) {
+			// 			if(channelDatum.buzzEmbedMessage) channelDatum.buzzEmbedMessage.edit(buzzEmbed).then((buzzEmbedMessage) => {
+			// 				channelDatum.buzzEmbedMessage = buzzEmbedMessage;
+			// 				channelDatum.buzzEmbedEdited = true;
+			// 			});
+			// 			else message.channel.send(buzzEmbed).then((buzzEmbedMessage) => {
+			// 				channelDatum.buzzEmbedMessage = buzzEmbedMessage;
+			// 				channelDatum.buzzEmbedEdited = true;
+			// 			});
+			// 		}
+			// 		else {
+			// 			setTimeout(processBuzz, 1)
+			// 		}
+			// 		// if(channelDatum.buzzEmbedsSent && channelDatum.buzzEmbedsDeleted) {
+			// 		// 	channelDatum.buzzEmbedsSent = false, channelDatum.buzzEmbedsDeleted = false;
+			// 		// 	message.channel.send(new Discord.MessageEmbed()
+			// 		// 		.setColor('RANDOM')
+			// 		// 		.setTitle('Buzz list')
+			// 		// 		.addFields(channelDatum.buzzList.map((buzz, index) => ({ name: '​', value: `${index + 1}. ${buzz.player} has buzzed${index ? ` (+${(buzz.buzzTime - channelDatum.buzzList[0].buzzTime) / 1000} s)` : ''}` })))
+			// 		// 		.setTimestamp()
+			// 		// 		.setFooter('Copyright © 2021 David Chen')).then(buzzEmbedMessage => {
+			// 		// 		channelDatum.buzzEmbedMessage = buzzEmbedMessage, channelDatum.buzzEmbedsSent = true;
+			// 		// 	});
+			// 		// 	if(channelDatum.buzzEmbedMessage) channelDatum.buzzEmbedMessage.delete().then(() => channelDatum.buzzEmbedsDeleted = true);
+			// 		// 	else channelDatum.buzzEmbedsDeleted = true;
+			// 		// }
+			// 		// else {
+			// 		// 	setTimeout(processBuzz, 1);
+			// 		// }
+			// 	};
+
+			// 	message.delete();
+			// 	if(channelDatum.settings[0] === '1' && channelDatum.moderator && channelDatum.moderator.voice.channelID) channelDatum.moderator.voice.setMute(true); // channelDatum.moderator?.voice.channelID
+			// 	const buzzPlayerNickname = message.member.nickname || message.author.username, buzzPlayerTeam = buzzPlayerNickname.substring(buzzPlayerNickname.indexOf('[') + 1, buzzPlayerNickname.indexOf(']')); // replace with ??
+			// 	channelDatum.buzzList.push({ player: message.author, buzzTime : message.createdAt, irrelevant: buzzPlayerTeam && channelDatum.buzzTeams.has(buzzPlayerTeam) });
+			// 	channelDatum.buzzTeams.add(buzzPlayerTeam);
+			// 	channelDatum.buzzList.sort((buzz1, buzz2) => buzz1.buzzTime - buzz2.buzzTime);
+			// 	const buzzEmbed = new Discord.MessageEmbed()
+			// 		.setColor('RANDOM')
+			// 		.setTitle('Buzz list')
+			// 		.addFields(channelDatum.buzzList.map((buzz, index) => ({ name: '​', value: `${buzz.irrelevant ? '~~' : ''}${index + 1}. ${buzz.player} has buzzed${index ? ` (+${(buzz.buzzTime - channelDatum.buzzList[0].buzzTime) / 1000} s)` : ''}${buzz.irrelevant ? '~~' : ''}` })))
+			// 		.setTimestamp()
+			// 		.setFooter('Copyright © 2021 David Chen');
+			// 	processBuzz();
+			// 	// message.react('✅').then(() => message.react('1️⃣')).then(() => message.react('2️⃣')).then(() => console.log(message.reactions.cache));
+			// }
 
 			// Adds specified buzzwords to Channel's buzzword Set
 			else if(message.content.toLowerCase().startsWith('add\n')) {
@@ -389,3 +402,52 @@ discordClient.on('message', message => {
 // 	}
 // 	return s === 0 ? ' has yet to score' : ' has ' + s + ' points';
 // }
+
+function processBuzz(msg, author, chan, chanData) {
+	if(processing) {
+		setTimeout(processBuzz, 1, msg, author, chan, chanData);
+	}
+	else {
+		processing = true;
+		const buzzes = chanData.buzzList;
+		const TS = buzzes.length ? msg.createdTimestamp - chanData.firstBuzzTS : 0;
+
+		for(let i = 0; i < buzzes.length + 1; i++) {
+			if(i === buzzes.length || TS < buzzes[i].TS) {
+				let buzzPromise;
+
+				if(i === 0) {
+					buzzes.map(buzz => buzz.TS -= TS);
+					chanData.firstBuzzTS = msg.createdTimestamp;
+					buzzPromise = chan.send(`1. ${author} has buzzed`);
+				}
+				else {
+					buzzPromise = chan.send(`${i + 1}. ${author} has buzzed (+${TS / 1000} s)`);
+				}
+
+				buzzPromise.then(message => {
+					// message.react('✅').then(() => message.react('1️⃣')).then(() => message.react('2️⃣')).then(() => console.log(message.reactions.cache));
+					buzzes.splice(i, 0, { player : author, TS : TS, buzzMsg : message });
+
+					if(i === buzzes.length - 1) processing = false;
+
+					for(let j = i + 1; j < buzzes.length; j++) {
+						buzzes[j].buzzMsg.delete();
+						const k = j;
+
+						chan.send(`${j + 1}. ${buzzes[j].player} has buzzed (+${buzzes[j].TS / 1000} s)`)
+							.then(message2 => {
+								buzzes[k].buzzMsg = message2;
+								processing = false;
+							});
+					}
+				});
+
+				break;
+			}
+		}
+	}
+}
+const channels = [];
+let processing = false;
+channels.push({ id : '690256907360796747', buzzList: new Array(5913).fill({ TS : 0 }), firstBuzzTS : 1601309000000, scores : [0, 0, 0] });
